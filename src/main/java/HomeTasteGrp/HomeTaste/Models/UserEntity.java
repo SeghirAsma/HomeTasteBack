@@ -28,6 +28,7 @@ public class UserEntity implements Serializable {
     private boolean approved ;
     private boolean isDeleted = false;
     public String profileImageUrl;
+    private String rejectionReason;
     @Field("creation_Date")
     @CreatedDate
     private Date creationDate=new Date();

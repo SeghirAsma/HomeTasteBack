@@ -36,10 +36,10 @@ public class AuthController {
             if (authentication.isAuthenticated()) {
                 // Vérifier si l'utilisateur est approuvé avant de générer le token
                 UserEntity user = userService.getUserByEmail(authRequest.getEmail());
-                if ((!user.getRole().name().equalsIgnoreCase("ADMIN") &&
+                /*if ((!user.getRole().name().equalsIgnoreCase("ADMIN") &&
                         (!user.getRole().name().equalsIgnoreCase("CONSUMER")) && !user.isApproved())) {
                     return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Le compte n'est pas encore approuvé.");
-                }
+                } */
 
                 String token = jwtService.generateToken(authRequest.getEmail());
                 return ResponseEntity.ok(new AuthResponse("Utilisateur authentifié", token));

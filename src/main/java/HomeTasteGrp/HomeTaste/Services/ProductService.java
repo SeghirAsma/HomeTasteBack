@@ -100,7 +100,7 @@ public class ProductService {
         }
     }
     //saving file
-    private String saveFile(MultipartFile fileNameProduct) throws IOException {
+    public String saveFile(MultipartFile fileNameProduct) throws IOException {
         File directory = new File(uploadDir);
         if (!directory.exists()) {
             directory.mkdirs();

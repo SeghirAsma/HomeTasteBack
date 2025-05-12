@@ -11,6 +11,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
@@ -40,8 +41,9 @@ public class UserController {
         return new ResponseEntity<>(users, HttpStatus.OK);
     }
     @PutMapping("archive/{id}")
-    public ResponseEntity<UserEntity> archiveUser(@PathVariable String id){
-        boolean success = userService.archiveUser(id);
+    public ResponseEntity<UserEntity> archiveUser(@PathVariable String id, @RequestBody Map<String, String> requestBody){
+        String reason = requestBody.get("reason");
+        boolean success = userService.archiveUser(id, reason);
         if(success){
             return  ResponseEntity.ok().build();
         }

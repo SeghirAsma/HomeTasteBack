@@ -2,7 +2,10 @@ package HomeTasteGrp.HomeTaste.Services;
 
 import HomeTasteGrp.HomeTaste.EmailSending.UserApprovedEvent;
 import HomeTasteGrp.HomeTaste.Models.UserEntity;
+import HomeTasteGrp.HomeTaste.Models.UserRejection;
+import HomeTasteGrp.HomeTaste.Repositories.UserRejectionRepository;
 import HomeTasteGrp.HomeTaste.Repositories.UserRepository;
+import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
@@ -20,15 +23,17 @@ import java.util.Optional;
 @Service
 public class UserService {
     private final UserRepository userRepository;
+    private final UserRejectionRepository userRejectionRepository;
     private final JavaMailSender emailSender;
     @Autowired
     private PasswordEncoder passwordEncoder;
     @Autowired
     private ApplicationEventPublisher eventPublisher;
     @Autowired
-    private UserService(UserRepository userRepository,JavaMailSender emailSender){
+    private UserService(UserRepository userRepository,JavaMailSender emailSender,UserRejectionRepository userRejectionRepositor){
         this.userRepository=userRepository;
         this.emailSender=emailSender;
+        this.userRejectionRepository=userRejectionRepositor;
     }
     public List<UserEntity> getAllUsers(){
         return userRepository.findAll();
@@ -62,16 +67,6 @@ public class UserService {
             }
             return userRepository.save(user);
         }
-    }
-
-    public boolean archiveUser(String id){
-        if(userRepository.findById(id).isPresent()){
-            UserEntity user= userRepository.findById(id).get();
-            user.setDeleted(true);
-            userRepository.save(user);
-            return  true;
-        }
-        return  false;
     }
     public ResponseEntity<UserEntity> updateUserById(String userId, UserEntity updatedUser) {
         Optional<UserEntity> existingUserOptional = userRepository.findById(userId);
@@ -110,9 +105,9 @@ public class UserService {
 
             String emailText = "<html><body>" +
                     "<p>Dear " + firstName + " " + lastName + ",</p>" +
-                    "<p>Your account has been approved. You can now log in.</p>" +
-                    "<p>Cordialement,</p>" +
-                    "<p>HomeTaste Team</p>" +
+                    "<p>Your account has been approved. You can now access the platform and start using our services.</p>" +
+                    "<p>Sincerely,</p>" +
+                    "<p>MadeHome Team</p>" +
                     logoHtml +
                     "</body></html>";
 
@@ -122,7 +117,7 @@ public class UserService {
             helper.setTo(userEmail);
             helper.setSubject(subject);
             helper.setText(emailText, true);
-            helper.setFrom("asmaseghir1770@gmail.com");
+            helper.setFrom("madehome.team@gmail.com");
 
             emailSender.send(message);
 
@@ -133,6 +128,55 @@ public class UserService {
         } catch (Exception e) {
             return new ResponseEntity<>("Error approving user: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+    public boolean archiveUser(String id, String reason){
+        if(userRepository.findById(id).isPresent()){
+            UserEntity user= userRepository.findById(id).get();
+            user.setDeleted(true);
+            userRepository.save(user);
+
+            UserRejection rejection = new UserRejection();
+            rejection.setUserEntity(user);
+            rejection.setReason(reason);
+            userRejectionRepository.save(rejection);
+
+            try {
+                String firstName = user.getFirstName();
+                String lastName = user.getLastName();
+
+                String userEmail = user.getEmail();
+                String subject = "Account Rejected";
+                String logoHtml = "<img src=\"https://img.freepik.com/premium-vector/creative-logo-small-business-owners-thank-you-shopping-small-quote-vector-illustration-flat_87447-1440.jpg\" " +
+                        "alt=\"Logo\" width=\"150\" height=\"150\">";
+
+                String emailText = "<html><body>" +
+                        "<p>Dear " + firstName + " " + lastName + ",</p>" +
+                        "<p>Your account has been rejected.</p>" +
+                        "<p><strong>Reason:</strong> " + reason + "</p>" +
+                        "<p>Sincerely,</p>" +
+                        "<p>MadeHome Team</p>" +
+                        logoHtml +
+                        "</body></html>";
+
+                MimeMessage message = emailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(message, "utf-8");
+
+                helper.setTo(userEmail);
+                helper.setSubject(subject);
+                helper.setText(emailText, true);
+                helper.setFrom("madehome.team@gmail.com");
+
+                emailSender.send(message);
+
+                // Déclencher l'événement d'approbation
+                eventPublisher.publishEvent(new UserApprovedEvent(this, userEmail));
+            }
+                catch (MessagingException e) {
+                    throw new RuntimeException("Failed to send rejection email", e);
+                }
+            return  true;
+        }
+        return  false;
     }
 
 }
