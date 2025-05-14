@@ -23,4 +23,5 @@ public class CompleteProfile implements Serializable {
     private String documentUrl;
     private List<String> socialLinks;
     public String profileImgUrl;
+    public boolean submitted = false;
 }
